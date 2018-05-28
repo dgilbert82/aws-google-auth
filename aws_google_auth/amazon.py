@@ -3,9 +3,13 @@
 import base64
 from datetime import datetime
 from threading import Thread
-
+from . import renderoutput
+from . import util
 import boto3
 from lxml import etree
+
+surface = 'gui'
+renderSurface = renderoutput.Surface(surface)
 
 
 class Amazon:
@@ -58,7 +62,7 @@ class Amazon:
             self.session_token,
             self.expiration.strftime('%Y-%m-%dT%H:%M:%S%z'))
 
-        print(formatted)
+        util.Util.show_output(formatted)
 
     @property
     def roles(self):

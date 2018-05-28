@@ -3,16 +3,40 @@
 import os
 from collections import OrderedDict
 from tabulate import tabulate
+from . import renderoutput
+surface = 'gui'
+renderSurface = renderoutput.Surface(surface)
 
 
 class Util:
 
     @staticmethod
+    def show_output(message):
+        if surface == 'gui':
+            return renderSurface.displayMessage(message)
+        else:
+            print(message)
+
+
+    @staticmethod
     def get_input(prompt):
-        try:
-            return raw_input(prompt)
-        except NameError:
-            return input(prompt)
+        if surface == 'gui':
+            return renderSurface.getInput(prompt)
+        else:
+            try:
+                return raw_input(prompt)
+            except NameError:
+                return input(prompt)
+
+    @staticmethod
+    def get_pass(prompt):
+        if surface == 'gui':
+            return renderSurface.getPass(prompt)
+        else:
+            try:
+                return raw_input(prompt)
+            except NameError:
+                return input(prompt)
 
     @staticmethod
     def pick_a_role(roles, aliases=None):
@@ -35,18 +59,18 @@ class Util:
                 enriched_roles_tab.append([i + 1, role_property[0], role_property[1]])
 
             while True:
-                print(tabulate(enriched_roles_tab, headers=['No', 'AWS account', 'Role'], ))
+                self.show_output(tabulate(enriched_roles_tab, headers=['No', 'AWS account', 'Role'], ))
                 prompt = 'Type the number (1 - {:d}) of the role to assume: '.format(len(enriched_roles))
                 choice = Util.get_input(prompt)
 
                 try:
                     return list(ordered_roles.items())[int(choice) - 1]
                 except IndexError:
-                    print("Invalid choice, try again.")
+                    self.show_output("Invalid choice, try again.")
         else:
             while True:
                 for i, role in enumerate(roles):
-                    print("[{:>3d}] {}".format(i + 1, role))
+                    self.show_output("[{:>3d}] {}".format(i + 1, role))
 
                 prompt = 'Type the number (1 - {:d}) of the role to assume: '.format(len(roles))
                 choice = Util.get_input(prompt)
@@ -54,7 +78,7 @@ class Util:
                 try:
                     return list(roles.items())[int(choice) - 1]
                 except IndexError:
-                    print("Invalid choice, try again.")
+                    self.show_output("Invalid choice, try again.")
 
     @staticmethod
     def touch(file_name, mode=0o600):

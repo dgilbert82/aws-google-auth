@@ -24,13 +24,14 @@ class Configuration(object):
         self.idp_id = None
         self.password = None
         self.profile = "sts"
-        self.region = "ap-southeast-2"
+        self.region = "eu-west-1"
         self.role_arn = None
         self.__saml_cache = None
         self.sp_id = None
         self.u2f_disabled = False
         self.resolve_aliases = False
         self.username = None
+        self.gui = True
 
     # For the "~/.aws/config" file, we use the format "[profile testing]"
     # for the 'testing' profile. The credential file will just be "[testing]"

@@ -44,12 +44,11 @@ def parse_args(args):
 
 def exit_if_unsupported_python():
     if sys.version_info.major == 2 and sys.version_info.minor < 7:
-        print("aws-google-auth requires Python 2.7 or higher. Please consider upgrading. Support "
-              "for Python 2.6 and lower was dropped because this tool's dependencies dropped support.")
-        print("")
-        print("For debugging, it appears you're running: '{}'.".format(str(sys.version_info)))
-        print("")
-        print("See https://github.com/cevoaustralia/aws-google-auth/issues/41 for more information.")
+        util.Util.show_output('''aws-google-auth requires Python 2.7 or higher. Please consider upgrading. Support
+            for Python 2.6 and lower was dropped because this tool's dependencies dropped support.
+              
+            For debugging, it appears you're running: '{}'
+            See https://github.com/cevoaustralia/aws-google-auth/issues/41 for more information.'''.format(str(sys.version_info)))
         sys.exit(1)
 
 
@@ -62,7 +61,7 @@ def cli(cli_args):
         config = resolve_config(args)
         process_auth(args, config)
     except google.ExpectedGoogleException as ex:
-        print(ex.message)
+        util.Util.show_output(ex.message)
         sys.exit(1)
     except KeyboardInterrupt:
         pass
@@ -173,9 +172,11 @@ def process_auth(args, config):
             if keyring_password:
                 config.password = keyring_password
             else:
-                config.password = getpass.getpass("Google Password: ")
+                #config.password = getpass.getpass("Google Password: ")
+                config.password = util.Util.get_pass("Google Password: ")
         else:
-            config.password = getpass.getpass("Google Password: ")
+            #config.password = getpass.getpass("Google Password: ")
+            config.password = util.Util.get_pass("Google Password: ")
 
         # Validate Options
         config.raise_if_invalid()
@@ -210,8 +211,9 @@ def process_auth(args, config):
         else:
             config.role_arn, config.provider = util.Util.pick_a_role(roles)
 
-    print("Assuming " + config.role_arn)
-    print("Credentials Expiration: " + format(amazon_client.expiration.astimezone(get_localzone())))
+    util.Util.show_output('''Assuming role {}
+        Credentials Expire: {}'''.format(config.role_arn, amazon_client.expiration.astimezone(get_localzone())))
+
 
     if config.profile:
         config.write(amazon_client)

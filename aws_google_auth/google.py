@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 from . import _version
+from . import renderoutput
+from . import util
 
 import sys
 import requests
@@ -8,6 +10,8 @@ import json
 import base64
 from bs4 import BeautifulSoup
 
+surface = 'gui'
+#renderSurface = renderoutput.Surface(surface)
 # In Python3, the library 'urlparse' was renamed to 'urllib.parse'. For this to
 # maintain compatibility with both Python 2 and Python 3, the import must be
 # dynamically chosen based on the version detected.
@@ -17,12 +21,12 @@ else:
     import urlparse
 
 
-# The U2F USB Library is optional, if it's there, include it.
-try:
-    from . import u2f
-except ImportError:
-    print("Failed to import U2F libraries, U2F login unavailable. Other "
-          "methods can still continue.")
+## The U2F USB Library is optional, if it's there, include it.
+#try:
+    #from . import u2f
+#except ImportError:
+    #print("Failed to import U2F libraries, U2F login unavailable. Other "
+          #"methods can still continue.")
 
 
 class ExpectedGoogleException(Exception):
@@ -177,7 +181,8 @@ class Google:
                 sess = self.handle_totp(sess)
                 error_msg = self.parse_error_message(sess)
                 if error_msg is not None:
-                    print(error_msg)
+                    util.Util.show_output(error_msg)
+
         elif "challenge/ipp/" in sess.url:
             sess = self.handle_sms(sess)
         elif "challenge/az/" in sess.url:
@@ -197,16 +202,19 @@ class Google:
         extra_step = response.find(text='This extra step shows that it’s really you trying to sign in')
         if extra_step:
             if response.find(id='contactAdminMessage'):
+                util.Util.show_output(response.find(id='contactAdminMessage').text)
                 raise ValueError(response.find(id='contactAdminMessage').text)
 
     def parse_saml(self):
         if self.session_state is None:
+            util.Util.show_output('You must use do_login() before calling parse_saml()')
             raise RuntimeError('You must use do_login() before calling parse_saml()')
 
         parsed = BeautifulSoup(self.session_state.text, 'html.parser')
         try:
             saml_element = parsed.find('input', {'name': 'SAMLResponse'}).get('value')
         except:
+            util.Util.show_output('Could not find SAML response, check your credentials')
             raise RuntimeError('Could not find SAML response, check your credentials')
 
         return base64.b64decode(saml_element)
@@ -234,7 +242,7 @@ class Google:
                 auth_response = json.dumps(u2f.u2f_auth(u2f_challenges, facet))
                 break
             except RuntimeWarning:
-                print("No U2F device found. {} attempts remaining.".format(attempts_remaining))
+                util.Util.show_output("No U2F device found. {} attempts remaining.".format(attempts_remaining))
                 if attempts_remaining <= 0:
                     break
                 else:
@@ -269,10 +277,7 @@ class Google:
         response_page = BeautifulSoup(sess.text, 'html.parser')
         challenge_url = sess.url.split("?")[0]
 
-        try:
-            sms_token = raw_input("Enter SMS token: G-") or None
-        except NameError:
-            sms_token = input("Enter SMS token: G-") or None
+        sms_token = util.Util.get_input("Enter SMS token: G-") or None
 
         payload = {
             'challengeId': response_page.find('input', {'name': 'challengeId'}).get('value'),
@@ -305,8 +310,7 @@ class Google:
         await_url = "https://content.googleapis.com/cryptauth/v1/authzen/awaittx?alt=json&key=%s" % data_key
         await_body = {'txId': data_tx_id}
 
-        print("Open the Google App, and tap 'Yes' on the prompt to sign in ...")
-
+        util.Util.show_output("Open the Google App, and tap 'Yes' on the prompt to sign in ...")
         self.session.headers['Referer'] = sess.url
         response = self.session.post(await_url, json=await_body)
         parsed = json.loads(response.text)
@@ -339,12 +343,15 @@ class Google:
         challenge_url = sess.url.split("?")[0]
         challenge_id = challenge_url.split("totp/")[1]
 
-        try:
-            mfa_token = raw_input("MFA token: ") or None
-        except NameError:
-            mfa_token = input("MFA token: ") or None
+        #try:
+            #mfa_token = raw_input("MFA token: ") or None
+        #except NameError:
+            #mfa_token = input("MFA token: ") or None
+
+        mfa_token = util.Util.get_input("MFA token: ") or None
 
         if not mfa_token:
+            util.Util.show_output("MFA token required for {} but none supplied.".format(self.config.username))
             raise ValueError("MFA token required for {} but none supplied.".format(self.config.username))
 
         payload = {
@@ -370,16 +377,15 @@ class Google:
     def handle_iap(self, sess):
         response_page = BeautifulSoup(sess.text, 'html.parser')
         challenge_url = sess.url.split("?")[0]
-        try:
-            phone_number = raw_input('Enter your phone number:') or None
-        except NameError:
-            phone_number = input('Enter your phone number:') or None
+        
+        phone_number = util.Util.get_input('Enter your phone number:') or None
+
 
         while True:
             try:
-                choice = int(input('Type 1 to receive a code by SMS or 2 for a voice call:'))
+                choice = int(util.Util.get_input('Type 1 to receive a code by SMS or 2 for a voice call:'))
             except ValueError:
-                print("Not an integer! Try again.")
+                util.Util.show_output("Not an integer! Try again.")
                 continue
             else:
                 if choice == 1:
@@ -411,10 +417,7 @@ class Google:
         response_page = BeautifulSoup(sess.text, 'html.parser')
         challenge_url = sess.url.split("?")[0]
 
-        try:
-            token = raw_input("Enter " + send_method + " token: G-") or None
-        except NameError:
-            token = input("Enter " + send_method + " token: G-") or None
+        token = util.Util.get_input("Enter " + send_method + " token: G-") or None
 
         payload = {
             'challengeId': response_page.find('input', {'name': 'challengeId'}).get('value'),
