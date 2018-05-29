@@ -66,19 +66,21 @@ class Util:
                 try:
                     return list(ordered_roles.items())[int(choice) - 1]
                 except IndexError:
-                    self.show_output("Invalid choice, try again.")
+                    Util.show_output("Invalid choice, try again.")
         else:
+            role_list = ''
             while True:
                 for i, role in enumerate(roles):
-                    self.show_output("[{:>3d}] {}".format(i + 1, role))
+                    role_list += "[{:>3d}] {}\n".format(i + 1, role)
 
+                Util.show_output(role_list)
                 prompt = 'Type the number (1 - {:d}) of the role to assume: '.format(len(roles))
                 choice = Util.get_input(prompt)
 
                 try:
                     return list(roles.items())[int(choice) - 1]
                 except IndexError:
-                    self.show_output("Invalid choice, try again.")
+                    Util.show_output("Invalid choice, try again.")
 
     @staticmethod
     def touch(file_name, mode=0o600):

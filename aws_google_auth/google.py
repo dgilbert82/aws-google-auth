@@ -343,11 +343,6 @@ class Google:
         challenge_url = sess.url.split("?")[0]
         challenge_id = challenge_url.split("totp/")[1]
 
-        #try:
-            #mfa_token = raw_input("MFA token: ") or None
-        #except NameError:
-            #mfa_token = input("MFA token: ") or None
-
         mfa_token = util.Util.get_input("MFA token: ") or None
 
         if not mfa_token:

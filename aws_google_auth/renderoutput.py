@@ -52,6 +52,10 @@ class Surface:
             return input(prompt)
         elif self.surfacetype == 'gui':
             self.win.setWindowTitle(prompt)
+            self.dialog.setEchoMode(QLineEdit.Normal)
+            self.button.rejected.connect(self.quit)
+            self.button.accepted.connect(self.app.exit)
+            self.dialog.setText('')
             self.win.show()
             self.app.exec_()
             return self.dialog.text()
@@ -63,9 +67,13 @@ class Surface:
         elif self.surfacetype == 'gui':
             self.win.setWindowTitle(prompt)
             self.dialog.setEchoMode(QLineEdit.Password)
-            self.button.rejected.connect(self.app.exit)
-            #self.button.accepted.connect(pass)
-            self.button.show()
+            self.button.rejected.connect(self.quit)
+            self.button.accepted.connect(self.app.exit)
+            self.dialog.setText('')
             self.win.show()
             self.app.exec_()
             return self.dialog.text()
+
+
+    def quit(self):
+        raise SystemExit()
