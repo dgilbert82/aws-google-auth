@@ -20,6 +20,8 @@ def parse_args(args):
         prog="aws-google-auth",
         description="Acquire temporary AWS credentials via Google SSO",
     )
+    parser.add_argument('-c', '--awsconfig', help='AWS config file location ($AWS_CONFIG_FILE)')
+    parser.add_argument('-C', '--awscreds', help='AWS credentials file location ($AWS_SHARED_CREDENTIALS_FILE)')
 
     parser.add_argument('-u', '--username', help='Google Apps username ($GOOGLE_USERNAME)')
     parser.add_argument('-I', '--idp-id', help='Google SSO IDP identifier ($GOOGLE_IDP_ID)')
@@ -30,6 +32,7 @@ def parse_args(args):
     parser.add_argument('-D', '--disable-u2f', action='store_true', help='Disable U2F functionality.')
     parser.add_argument('--no-cache', dest="saml_cache", action='store_false', help='Do not cache the SAML Assertion.')
     parser.add_argument('--resolve-aliases', action='store_true', help='Resolve AWS account aliases.')
+    parser.add_argument('-g', '--gui', action='store_true', help='Use a (Qt) gui to display prompts.')
 
     role_group = parser.add_mutually_exclusive_group()
     role_group.add_argument('-a', '--ask-role', action='store_true', help='Set true to always pick the role')
@@ -44,7 +47,7 @@ def parse_args(args):
 
 def exit_if_unsupported_python():
     if sys.version_info.major == 2 and sys.version_info.minor < 7:
-        util.Util.show_output('''aws-google-auth requires Python 2.7 or higher. Please consider upgrading. Support
+        util.Util.show_output(config.gui, '''aws-google-auth requires Python 2.7 or higher. Please consider upgrading. Support
             for Python 2.6 and lower was dropped because this tool's dependencies dropped support.
               
             For debugging, it appears you're running: '{}'
@@ -61,7 +64,7 @@ def cli(cli_args):
         config = resolve_config(args)
         process_auth(args, config)
     except google.ExpectedGoogleException as ex:
-        util.Util.show_output(ex.message)
+        util.Util.show_output(config.gui, ex.message)
         sys.exit(1)
     except KeyboardInterrupt:
         pass
@@ -74,6 +77,16 @@ def resolve_config(args):
 
     # Create a blank configuration object (has the defaults pre-filled)
     config = configuration.Configuration()
+
+    # Location of the aws (boto) config file usually ~/.aws/config
+    config.awsconfig = coalesce(
+        args.awsconfig,
+        os.getenv('AWS_CONFIG_FILE'))
+    
+    # Location of the aws (boto) credentials file usually ~/.aws/credentials
+    config.awscreds = coalesce(
+        args.awscreds,
+        os.getenv('AWS_SHARED_CREDENTIALS_FILE'))
 
     # Have the configuration update itself via the ~/.aws/config on disk.
     # Profile (Option priority = ARGS, ENV_VAR, DEFAULT)
@@ -91,7 +104,7 @@ def resolve_config(args):
         args.ask_role,
         os.getenv('AWS_ASK_ROLE'),
         config.ask_role))
-
+    
     # Duration (Option priority = ARGS, ENV_VAR, DEFAULT)
     config.duration = int(coalesce(
         args.duration,
@@ -144,6 +157,10 @@ def resolve_config(args):
         args.keyring,
         config.keyring)
 
+    config.gui = bool(coalesce(
+        args.gui,
+        config.gui))
+    
     return config
 
 
@@ -158,11 +175,11 @@ def process_auth(args, config):
     else:
         # No cache, continue without.
         if config.username is None:
-            config.username = util.Util.get_input("Google username: ")
+            config.username = util.Util.get_input(config.gui, "Google username: ")
         if config.idp_id is None:
-            config.idp_id = util.Util.get_input("Google IDP ID: ")
+            config.idp_id = util.Util.get_input(config.gui, "Google IDP ID: ")
         if config.sp_id is None:
-            config.sp_id = util.Util.get_input("Google SP ID: ")
+            config.sp_id = util.Util.get_input(config.gui, "Google SP ID: ")
 
         # There is no way (intentional) to pass in the password via the command
         # line nor environment variables. This prevents password leakage.
@@ -173,10 +190,10 @@ def process_auth(args, config):
                 config.password = keyring_password
             else:
                 #config.password = getpass.getpass("Google Password: ")
-                config.password = util.Util.get_pass("Google Password: ")
+                config.password = util.Util.get_pass(config.gui, "Google Password: ")
         else:
             #config.password = getpass.getpass("Google Password: ")
-            config.password = util.Util.get_pass("Google Password: ")
+            config.password = util.Util.get_pass(config.gui, "Google Password: ")
 
         # Validate Options
         config.raise_if_invalid()
@@ -207,11 +224,11 @@ def process_auth(args, config):
     else:
         if config.resolve_aliases:
             aliases = amazon_client.resolve_aws_aliases(roles)
-            config.role_arn, config.provider = util.Util.pick_a_role(roles, aliases)
+            config.role_arn, config.provider = util.Util.pick_a_role(config.gui, roles, aliases)
         else:
-            config.role_arn, config.provider = util.Util.pick_a_role(roles)
+            config.role_arn, config.provider = util.Util.pick_a_role(config.gui, roles)
 
-    util.Util.show_output('''Assuming role {}
+    util.Util.show_output(config.gui, '''Assuming role {}
         Credentials Expire: {}'''.format(config.role_arn, amazon_client.expiration.astimezone(get_localzone())))
 
 

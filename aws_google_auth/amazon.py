@@ -62,7 +62,7 @@ class Amazon:
             self.session_token,
             self.expiration.strftime('%Y-%m-%dT%H:%M:%S%z'))
 
-        util.Util.show_output(formatted)
+        util.Util.show_output(self.config.gui, formatted)
 
     @property
     def roles(self):

@@ -26,7 +26,7 @@ class Surface:
         self.form = QFormLayout()
         self.button = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         
-        self.form.addRow("Input:", self.dialog)
+        self.form.addRow("", self.dialog)
         self.form.addWidget(self.button)
         
         self.win.resize(600, 100)
